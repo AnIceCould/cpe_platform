@@ -1,0 +1,104 @@
+# ===================================================================
+# Spring Boot 核心配置文件
+# ===================================================================
+
+# 服务器相关配置
+server:
+  port: 8080 # 定义应用的监听端口
+
+# ===================================================================
+# Spring 框架核心配置
+# ===================================================================
+spring:
+  # -------------------------------------------------------------------
+  # 数据源 (DataSource) 配置 - 连接MySQL数据库
+  # -------------------------------------------------------------------
+  datasource:
+    # 数据库连接URL
+    # 请将 'cpe_platform_db' 替换为您的数据库名，并确保它已存在
+    url: jdbc:mysql://localhost:3306/cpe_platform_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    # 您的MySQL用户名 (例如: root)
+    username: cpeUsr
+    # 您的MySQL密码
+    password: 123456
+    # 明确指定使用哪个JDBC驱动
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # -------------------------------------------------------------------
+  # Java Persistence API (JPA) 配置
+  # -------------------------------------------------------------------
+  jpa:
+    # JPA的相关属性配置
+    properties:
+      hibernate:
+        # SQL方言，帮助Hibernate生成针对特定数据库的SQL
+        dialect: org.hibernate.dialect.MySQLDialect
+    # Hibernate specific settings
+    hibernate:
+      # ddl-auto: 自动数据定义语言。
+      # 'update' 会在应用启动时，根据实体类的变化自动更新数据库表结构。
+      # 在开发阶段非常方便。生产环境建议使用 'validate' 或数据库迁移工具 (Flyway/Liquibase)。
+      ddl-auto: update
+    # 是否在控制台显示Hibernate执行的SQL语句，便于调试
+    show-sql: true
+
+  # -------------------------------------------------------------------
+  # Redis 配置
+  # -------------------------------------------------------------------
+  redis:
+    host: localhost # Redis服务器地址
+    port: 6379      # Redis服务器端口
+    # password: your_redis_password # 如果您的Redis有密码，请取消此行注释并填入密码
+
+  # -------------------------------------------------------------------
+  # Kafka 配置
+  # -------------------------------------------------------------------
+  kafka:
+    # Kafka 集群的地址列表
+    bootstrap-servers: localhost:9092
+    # 消费者 (Consumer) 配置
+    consumer:
+      # 消费者组ID，同一组内的消费者共同消费一个Topic
+      group-id: cpe-platform-group
+      # 当没有初始偏移量或当前偏移量不存在时，从何处开始消费。'earliest'表示从最早的消息开始。
+      auto-offset-reset: earliest
+      # 消息的Key和Value的反序列化器
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      # JsonDeserializer需要信任的包路径，否则会因安全原因反序列化失败
+      properties:
+        spring.json.trusted.packages: "com.cpeplatform.api.dto"
+    # 生产者 (Producer) 配置
+    producer:
+      # 消息的Key和Value的序列化器
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # 对于模拟器，我们发送的是普通JSON字符串，所以使用StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+# ===================================================================
+# 应用自定义配置
+# ===================================================================
+app:
+  # Kafka Topic 名称配置
+  kafka:
+    topic:
+      # 模拟器发送的原始数据Topic
+      raw-data: "cpe-raw-data"
+  # 数据模拟器配置
+  simulator:
+    # 是否启用数据模拟器。设置为 'false' 可以关闭它，无需修改代码。
+    enabled: true
+
+# ===================================================================
+# 日志 (Logging) 配置
+# ===================================================================
+logging:
+  level:
+    # 设置根日志级别为INFO，这是默认级别
+    root: INFO
+    # 为您自己的项目包设置更详细的日志级别为DEBUG，方便开发调试
+    com.cpeplatform: DEBUG
+    # Spring框架的日志级别，设为INFO，避免过多无关日志刷屏
+    org.springframework.web: INFO
+    # Hibernate的日志级别，设为INFO
+    org.hibernate: INFO

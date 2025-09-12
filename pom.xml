@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Spring Boot 父项目，用于提供依赖管理和插件管理 -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.1.5</version> <!-- 使用与Java 17兼容的Spring Boot 3.x版本 -->
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+
+    <!-- 项目坐标信息 -->
+    <groupId>com.cpeplatform</groupId>
+    <artifactId>cpe-platform-service</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>cpe-platform-service</name>
+    <description>CPE Platform Monolithic Service</description>
+
+    <!-- 项目属性配置 -->
+    <properties>
+        <!-- 设定Java编译和运行版本为17 -->
+        <java.version>17</java.version>
+        <!-- gRPC Starter的版本 -->
+        <grpc.version>2.15.0.RELEASE</grpc.version>
+        <!-- Logstash日志编码器版本 -->
+        <logstash-encoder.version>7.4</logstash-encoder.version>
+    </properties>
+
+    <!-- =============================================================== -->
+    <!-- 项目依赖管理 (Dependencies)                                     -->
+    <!-- =============================================================== -->
+    <dependencies>
+        <!-- Spring Boot 核心启动器 -->
+        <!-- Spring Boot Web: 用于构建Web应用，包括RESTful API (对应api/controller) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <!-- Spring Data JPA: 用于简化数据库访问 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- 持久化层 -->
+        <!-- Spring Data Redis: 用于集成Redis作为缓存或数据存储 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <!-- MySQL数据库驱动 -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>8.3.0</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- 适配器与消息队列 -->
+        <!-- Spring for Apache Kafka: 用于集成Kafka消息队列 -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+        <!-- Spring Boot WebSocket: 用于实现WebSocket通信 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+        <!-- gRPC Spring Boot Starter: 用于简化gRPC客户端的集成 -->
+        <dependency>
+            <groupId>net.devh</groupId>
+            <artifactId>grpc-spring-boot-starter</artifactId>
+            <version>${grpc.version}</version>
+        </dependency>
+
+        <!-- 开发辅助工具 -->
+        <!-- Lombok: 用于通过注解简化POJO(Entity, DTO)的样板代码 -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- 测试 -->
+        <!-- Spring Boot Starter Test: 包含JUnit, Mockito等测试框架 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Spring Kafka Test: 用于测试Kafka相关逻辑 -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <!-- =============================================================== -->
+    <!-- 构建配置 (Build)                                                -->
+    <!-- =============================================================== -->
+    <build>
+        <plugins>
+            <!-- Spring Boot Maven插件: 用于将项目打包成一个可执行的JAR文件 -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- 配置Lombok -->
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+
