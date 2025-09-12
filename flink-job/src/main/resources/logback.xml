@@ -1,0 +1,35 @@
+<configuration>
+
+    <!-- 1. 定义日志输出的格式和位置 (这里是输出到控制台) -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!--
+              定义日志输出格式:
+              %d{HH:mm:ss.SSS} - 时间
+              %-5level - 日志级别 (INFO, DEBUG等)
+              %logger{36} - Logger名称 (通常是类名)
+              %msg - 日志消息
+              %n - 换行
+            -->
+            <pattern>%d{HH:mm:ss.SSS} [%-5level] %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!--
+      2. 设置第三方库的日志级别。
+      这是“根”Logger，它控制了所有未被明确指定的库的日志级别。
+      我们把它设置为 INFO，来过滤掉大部分无用的DEBUG信息。
+    -->
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+
+    <!--
+      3. 【核心】为我们自己的应用程序设置特定的日志级别。
+      我们希望看到自己代码中所有的日志，包括DEBUG级别的。
+    -->
+    <logger name="com.cpeplatform" level="DEBUG" additivity="false">
+        <appender-ref ref="STDOUT" />
+    </logger>
+
+</configuration>
