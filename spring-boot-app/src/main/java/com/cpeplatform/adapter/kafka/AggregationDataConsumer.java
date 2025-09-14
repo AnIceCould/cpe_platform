@@ -29,7 +29,9 @@ public class AggregationDataConsumer {
      * 1. 监听的 Topic 更新为 Flink 输出特征数据的新 Topic。
      * 2. 接收的参数类型直接就是 Flink 计算好的 CpeFeatures 对象。
      */
-    @KafkaListener(topics = "${app.kafka.topic.features-for-prediction}", groupId = "${spring.kafka.consumer.group-id}")
+    @KafkaListener(topics = "${app.kafka.topic.features-for-prediction}",
+            groupId = "${spring.kafka.consumer.group-id}",
+            containerFactory = "featuresKafkaListenerContainerFactory")
     public void consumeFeaturesData(CpeFeatures features) {
         logger.info("=================================================");
         logger.info("  📬 接收到 Flink 计算的特征集，准备进行预测...");

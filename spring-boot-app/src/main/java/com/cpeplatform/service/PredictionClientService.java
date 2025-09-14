@@ -1,6 +1,8 @@
 package com.cpeplatform.service;
 
+import com.cpeplatform.adapter.kafka.PredictionResultProducerService;
 import com.cpeplatform.dto.CpeFeatures;
+import com.cpeplatform.dto.PredictionResultDto;
 import com.cpeplatform.grpc.PacketLossFeaturesRequest;
 import com.cpeplatform.grpc.PacketLossResponse;
 import com.cpeplatform.grpc.PredictionServiceGrpc;
@@ -8,6 +10,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +34,13 @@ public class PredictionClientService {
 
     private ManagedChannel channel;
     private PredictionServiceGrpc.PredictionServiceBlockingStub blockingStub;
+
+    // 注入新的生产者服务
+    private final PredictionResultProducerService producerService;
+    @Autowired
+    public PredictionClientService(PredictionResultProducerService producerService) {
+        this.producerService = producerService;
+    }
 
     @PostConstruct
     private void init() {
@@ -75,8 +85,17 @@ public class PredictionClientService {
             PacketLossResponse response = blockingStub.predictPacketLoss(request);
             boolean prediction = response.getHasPacketLoss();
             logger.info("✅ gRPC 服务调用成功！预测结果: {}", prediction ? "可能丢包" : "正常");
-            return prediction;
+            // 3. 【【【核心新增逻辑】】】
+            //    构建最终的预测结果对象
+            PredictionResultDto resultDto = PredictionResultDto.builder()
+                    .deviceId(features.getDeviceId())
+                    .predictionTimestamp(System.currentTimeMillis())
+                    .hasPacketLoss(prediction)
+                    .build();
 
+            // 4. 调用生产者服务，将结果发送到 Kafka
+            producerService.sendPredictionResult(resultDto);
+            return true;
         } catch (Exception e) {
             logger.error("❌ gRPC 服务调用失败: {}", e.getMessage());
             return false;

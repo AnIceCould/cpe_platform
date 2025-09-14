@@ -22,7 +22,7 @@ spring:
   datasource:
     # 数据库连接URL
     # 请将 'cpe_platform_db' 替换为您的数据库名，并确保它已存在
-    url: jdbc:mysql://localhost:3306/cpe_platform_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://192.168.56.1:3306/cpeDB?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     # 您的MySQL用户名 (例如: root)
     username: cpeUsr
     # 您的MySQL密码
@@ -51,9 +51,9 @@ spring:
   # -------------------------------------------------------------------
   # Redis 配置
   # -------------------------------------------------------------------
-  redis:
-    host: localhost # Redis服务器地址
-    port: 6379      # Redis服务器端口
+  #redis:
+    #host: localhost # Redis服务器地址
+    #port: 6379      # Redis服务器端口
     # password: your_redis_password # 如果您的Redis有密码，请取消此行注释并填入密码
 
   # -------------------------------------------------------------------
@@ -65,11 +65,8 @@ spring:
       group-id: cpe-platform-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "com.cpeplatform.api.dto,com.cpeplatform.dto"
-        # 【重要更新】告诉消费者如何反序列化新的特征对象
-        spring.json.value.default.type: com.cpeplatform.dto.CpeFeatures
         spring.json.use.type.headers: false
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -89,6 +86,8 @@ app:
       # 定义新的聚合数据Topic
       packetloss-aggregation: "cpe-packetloss-aggregation"
       features-for-prediction: "cpe-features-for-prediction"
+      # 定义新的预测结果Topic
+      prediction-result: "cpe-prediction-result"
   # 数据模拟器配置
   simulator:
     # 是否启用数据模拟器。设置为 'false' 可以关闭它，无需修改代码。
