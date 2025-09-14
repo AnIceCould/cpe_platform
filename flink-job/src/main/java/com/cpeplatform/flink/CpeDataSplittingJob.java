@@ -36,7 +36,6 @@ public class CpeDataSplittingJob {
     public static void main(String[] args) throws Exception {
 
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-
         KafkaSource<CpeRawData> source = KafkaSource.<CpeRawData>builder()
                 .setBootstrapServers(KAFKA_BOOTSTRAP_SERVERS)
                 .setTopics(INPUT_TOPIC)
