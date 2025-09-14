@@ -6,6 +6,12 @@
 server:
   port: 8080 # 定义应用的监听端口
 
+# 【【【新增】】】 gRPC 客户端配置
+grpc:
+  server:
+    address: "localhost" # 另一台 gRPC 服务器的地址
+    port: 9090           # gRPC 服务器的端口
+
 # ===================================================================
 # Spring 框架核心配置
 # ===================================================================
@@ -54,25 +60,21 @@ spring:
   # Kafka 配置
   # -------------------------------------------------------------------
   kafka:
-    # Kafka 集群的地址列表
     bootstrap-servers: localhost:9092
-    # 消费者 (Consumer) 配置
     consumer:
-      # 消费者组ID，同一组内的消费者共同消费一个Topic
       group-id: cpe-platform-group
-      # 当没有初始偏移量或当前偏移量不存在时，从何处开始消费。'earliest'表示从最早的消息开始。
       auto-offset-reset: earliest
-      # 消息的Key和Value的反序列化器
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      # JsonDeserializer需要信任的包路径，否则会因安全原因反序列化失败
       properties:
-        spring.json.trusted.packages: "com.cpeplatform.api.dto"
-    # 生产者 (Producer) 配置
+        # 【【【重要更新】】】: 添加新的DTO包路径，用逗号分隔
+        spring.json.trusted.packages: "com.cpeplatform.api.dto,com.cpeplatform.dto"
+        # 【【【核心修正】】】: 告诉JsonDeserializer不要依赖消息头中的类型信息
+        spring.json.use.type.headers: false
+        # 【【【核心修正】】】: 为没有类型头的消息提供默认的反序列化目标类
+        spring.json.value.default.type: com.cpeplatform.dto.CpePacketLossAggregation
     producer:
-      # 消息的Key和Value的序列化器
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      # 对于模拟器，我们发送的是普通JSON字符串，所以使用StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
 # ===================================================================
@@ -84,6 +86,10 @@ app:
     topic:
       # 模拟器发送的原始数据Topic
       raw-data: "cpe-raw-data"
+      processed-latency: "cpe-processed-latency"
+      processed-status: "cpe-processed-status"
+      # 定义新的聚合数据Topic
+      packetloss-aggregation: "cpe-packetloss-aggregation"
   # 数据模拟器配置
   simulator:
     # 是否启用数据模拟器。设置为 'false' 可以关闭它，无需修改代码。
