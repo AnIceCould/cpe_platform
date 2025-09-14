@@ -1,24 +1,41 @@
 // 指定使用 proto3 语法
 syntax = "proto3";
 
-// 生成的Java类的包名 (Python端会忽略此项)
+// 生成的Java类的包名
 option java_package = "com.cpeplatform.grpc";
 option java_multiple_files = true;
 
 // 定义 gRPC 服务的名称
 service PredictionService {
   // 定义一个名为 PredictPacketLoss 的远程方法
-  // 它接收 PacketLossRequest 消息，并返回 PacketLossResponse 消息
-  rpc PredictPacketLoss (PacketLossRequest) returns (PacketLossResponse);
+  // 它接收 PacketLossFeaturesRequest 消息，并返回 PacketLossResponse 消息
+  rpc PredictPacketLoss (PacketLossFeaturesRequest) returns (PacketLossResponse);
 }
 
-// 定义请求消息的结构
-message PacketLossRequest {
-  // `repeated` 关键字表示这是一个列表/数组
-  repeated int32 rtts = 1;
+// 【重大更新】 定义新的请求消息结构
+message PacketLossFeaturesRequest {
+    // 原始 RTT 值
+    int32 delay_1 = 1;
+    int32 delay_2 = 2;
+    int32 delay_3 = 3;
+    int32 delay_4 = 4;
+    int32 delay_5 = 5;
+
+    // 统计特征
+    double mean_delay = 6;
+    double min_delay = 7;
+    double mid_delay = 8;
+    double max_delay = 9;
+    double range = 10;
+    double mean_of_last_three = 11;
+    double diff_between_last_two = 12;
+
+    // 趋势特征
+    double slope_delay = 13;
 }
 
 // 定义响应消息的结构
 message PacketLossResponse {
   bool hasPacketLoss = 1;
 }
+

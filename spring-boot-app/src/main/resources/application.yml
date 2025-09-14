@@ -67,12 +67,10 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        # 【【【重要更新】】】: 添加新的DTO包路径，用逗号分隔
         spring.json.trusted.packages: "com.cpeplatform.api.dto,com.cpeplatform.dto"
-        # 【【【核心修正】】】: 告诉JsonDeserializer不要依赖消息头中的类型信息
+        # 【重要更新】告诉消费者如何反序列化新的特征对象
+        spring.json.value.default.type: com.cpeplatform.dto.CpeFeatures
         spring.json.use.type.headers: false
-        # 【【【核心修正】】】: 为没有类型头的消息提供默认的反序列化目标类
-        spring.json.value.default.type: com.cpeplatform.dto.CpePacketLossAggregation
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -90,6 +88,7 @@ app:
       processed-status: "cpe-processed-status"
       # 定义新的聚合数据Topic
       packetloss-aggregation: "cpe-packetloss-aggregation"
+      features-for-prediction: "cpe-features-for-prediction"
   # 数据模拟器配置
   simulator:
     # 是否启用数据模拟器。设置为 'false' 可以关闭它，无需修改代码。

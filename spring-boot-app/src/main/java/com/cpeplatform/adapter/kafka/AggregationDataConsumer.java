@@ -1,7 +1,6 @@
 package com.cpeplatform.adapter.kafka;
 
-import com.cpeplatform.dto.CpePacketLossAggregation;
-import com.cpeplatform.dto.LatencyDataPoint;
+import com.cpeplatform.dto.CpeFeatures; // 【重要】导入新的共享 DTO
 import com.cpeplatform.service.PredictionClientService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,10 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
-import java.util.stream.Collectors;
-
 /**
- * 负责消费 Flink 聚合数据，并触发 gRPC 预测服务。
+ * 负责消费 Flink 计算好的特征数据，并触发 gRPC 预测服务。
  */
 @Service
 public class AggregationDataConsumer {
@@ -27,20 +24,21 @@ public class AggregationDataConsumer {
         this.predictionClientService = predictionClientService;
     }
 
-    @KafkaListener(topics = "${app.kafka.topic.packetloss-aggregation}", groupId = "${spring.kafka.consumer.group-id}")
-    public void consumeAggregationData(CpePacketLossAggregation aggregation) {
+    /**
+     * 【核心修正】
+     * 1. 监听的 Topic 更新为 Flink 输出特征数据的新 Topic。
+     * 2. 接收的参数类型直接就是 Flink 计算好的 CpeFeatures 对象。
+     */
+    @KafkaListener(topics = "${app.kafka.topic.features-for-prediction}", groupId = "${spring.kafka.consumer.group-id}")
+    public void consumeFeaturesData(CpeFeatures features) {
         logger.info("=================================================");
-        logger.info("  📬 接收到 Flink 聚合数据，准备进行预测...");
+        logger.info("  📬 接收到 Flink 计算的特征集，准备进行预测...");
         logger.info("-------------------------------------------------");
-        logger.info("  ▶ 设备ID: {}", aggregation.getDeviceId());
+        logger.info("  ▶ 设备ID: {}", features.getDeviceId());
 
-        // 1. 从接收到的数据中提取出 RTT 列表
-        var rtts = aggregation.getLatencyDataPoints().stream()
-                .map(LatencyDataPoint::getRtt)
-                .collect(Collectors.toList());
-
-        // 2. 调用 gRPC 服务进行预测
-        predictionClientService.predict(rtts);
+        // 【核心修正】
+        // 不再需要提取RTT列表，直接将整个特征对象传递给预测服务。
+        predictionClientService.predict(features);
 
         logger.info("=================================================");
     }

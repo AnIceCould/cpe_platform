@@ -1,7 +1,7 @@
 package com.cpeplatform.flink;
 
 import com.cpeplatform.flink.deserializer.CpeRawDataDeserializer;
-import com.cpeplatform.flink.model.*; // 导入所有模型
+import com.cpeplatform.flink.model.*;
 import com.cpeplatform.flink.serializer.JsonSerializationSchema;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
@@ -19,32 +19,24 @@ import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-/**
- * Flink流处理作业的主类。
- * 职责：
- * 1. 从 "cpe-raw-data" 主题消费原始数据。
- * 2. 将每条消息拆分为 "延迟" 和 "状态" 两条消息，并发送到Kafka。
- * 3. 【新增】对延迟数据流进行聚合，每5条相同ID的数据打包成一条消息，发送到新的Kafka Topic。
- */
 public class CpeDataSplittingJob {
 
     // --- 配置常量 ---
     private static final String KAFKA_BOOTSTRAP_SERVERS = "localhost:9092";
     private static final String INPUT_TOPIC = "cpe-raw-data";
-    private static final String OUTPUT_LATENCY_TOPIC = "cpe-processed-latency";
-    private static final String OUTPUT_STATUS_TOPIC = "cpe-processed-status";
-    // 新增：丢包聚合数据的输出Topic
-    private static final String OUTPUT_PACKETLOSS_AGGREGATION_TOPIC = "cpe-packetloss-aggregation";
+    // 【修改】新的输出 Topic 名称
+    private static final String OUTPUT_FEATURES_TOPIC = "cpe-features-for-prediction";
     private static final String CONSUMER_GROUP_ID = "cpe-flink-processor-group";
 
     public static void main(String[] args) throws Exception {
 
-        // 步骤 1: 初始化 Flink 流处理执行环境
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
-        // 步骤 2: 定义 Kafka Source (数据从哪里来)
         KafkaSource<CpeRawData> source = KafkaSource.<CpeRawData>builder()
                 .setBootstrapServers(KAFKA_BOOTSTRAP_SERVERS)
                 .setTopics(INPUT_TOPIC)
@@ -53,81 +45,110 @@ public class CpeDataSplittingJob {
                 .setDeserializer(KafkaRecordDeserializationSchema.valueOnly(new CpeRawDataDeserializer()))
                 .build();
 
-        // 步骤 3: 从 Source 创建数据流，并过滤掉坏数据
         DataStream<CpeRawData> rawStream = env.fromSource(source, WatermarkStrategy.noWatermarks(), "Kafka Raw Data Source")
                 .filter(java.util.Objects::nonNull);
 
-        // 步骤 4: 定义“侧输出”标签
         final OutputTag<CpeLatencyData> latencyTag = new OutputTag<CpeLatencyData>("latency-output"){};
 
-        // 步骤 5: 核心处理逻辑 - 拆分数据流
         SingleOutputStreamOperator<CpeStatusData> mainStream = rawStream
                 .process(new ProcessFunction<CpeRawData, CpeStatusData>() {
                     @Override
                     public void processElement(CpeRawData rawData, Context ctx, Collector<CpeStatusData> out) {
-                        CpeStatusData statusData = new CpeStatusData(rawData.getDeviceId(), rawData.getStatus(), rawData.getTimestamp());
-                        out.collect(statusData);
+                        // 状态数据流保持不变 (如果需要)
+                        // CpeStatusData statusData = new CpeStatusData(...);
+                        // out.collect(statusData);
 
                         CpeLatencyData latencyData = new CpeLatencyData(rawData.getDeviceId(), rawData.getRtt(), rawData.getTimestamp());
                         ctx.output(latencyTag, latencyData);
                     }
                 });
 
-        // 步骤 6: 获取拆分后的两条数据流
-        DataStream<CpeStatusData> statusStream = mainStream;
         DataStream<CpeLatencyData> latencyStream = mainStream.getSideOutput(latencyTag);
 
-        // 步骤 7: 将拆分后的状态流和原始延迟流写入 Kafka (原有逻辑)
-        statusStream.sinkTo(createKafkaSink(OUTPUT_STATUS_TOPIC)).name("Status Kafka Sink");
-        latencyStream.sinkTo(createKafkaSink(OUTPUT_LATENCY_TOPIC)).name("Latency Kafka Sink");
-
         // ------------------------------------------------------------------
-        // 【【【 新增的聚合处理逻辑 】】】
+        // 【【【 全新的特征工程逻辑 】】】
         // ------------------------------------------------------------------
-
-        // 步骤 8: 对延迟数据流进行聚合
-        DataStream<CpePacketLossAggregation> packetLossStream = latencyStream
-                // 8.1: 按照 deviceId 对数据进行分组
+        DataStream<CpeFeatures> featuresStream = latencyStream
                 .keyBy(CpeLatencyData::getDeviceId)
-                // 8.2: 创建一个计数窗口，窗口大小为5
                 .countWindow(5)
-                // 8.3: 对窗口内的数据进行处理，打包成一个新的对象
-                .process(new PacketLossAggregator());
+                .process(new FeatureEngineeringProcessor()); // 使用新的处理器
 
-        // 步骤 9: 将聚合后的数据流写入新的 Kafka Topic
-        packetLossStream.sinkTo(createKafkaSink(OUTPUT_PACKETLOSS_AGGREGATION_TOPIC))
-                .name("Packet Loss Aggregation Kafka Sink");
+        // 将计算好的特征集写入新的 Kafka Topic
+        featuresStream.sinkTo(createKafkaSink(OUTPUT_FEATURES_TOPIC))
+                .name("Features Kafka Sink");
 
-
-        // 步骤 10: 触发作业执行 (作业名更新)
-        env.execute("CPE 数据实时处理与聚合作业");
+        env.execute("CPE 实时特征工程作业");
     }
 
     /**
-     * Flink 的 ProcessWindowFunction，用于处理一个已触发的窗口中的所有数据。
+     * 核心处理器，负责从5个RTT数据点中计算出所有统计和趋势特征。
      */
-    public static class PacketLossAggregator extends ProcessWindowFunction<CpeLatencyData, CpePacketLossAggregation, String, GlobalWindow> {
+    public static class FeatureEngineeringProcessor extends ProcessWindowFunction<CpeLatencyData, CpeFeatures, String, GlobalWindow> {
         @Override
-        public void process(String deviceId, Context context, Iterable<CpeLatencyData> elements, Collector<CpePacketLossAggregation> out) {
-            List<LatencyDataPoint> points = new ArrayList<>();
-            for (CpeLatencyData element : elements) {
-                points.add(new LatencyDataPoint(element.getRtt(), element.getTimestamp()));
+        public void process(String deviceId, Context context, Iterable<CpeLatencyData> elements, Collector<CpeFeatures> out) {
+
+            List<Integer> rtts = new ArrayList<>();
+            for(CpeLatencyData element : elements) {
+                rtts.add(element.getRtt());
             }
 
-            // 创建最终的聚合结果对象
-            CpePacketLossAggregation aggregation = new CpePacketLossAggregation(deviceId, System.currentTimeMillis(), points);
+            if (rtts.size() != 5) return; // 安全校验
 
-            // 发送聚合结果到下游
-            out.collect(aggregation);
+            // --- 开始计算特征 ---
+            double mean = rtts.stream().mapToInt(Integer::intValue).average().orElse(0.0);
+            double min = Collections.min(rtts);
+            double max = Collections.max(rtts);
+
+            List<Integer> sortedRtts = new ArrayList<>(rtts);
+            Collections.sort(sortedRtts);
+            double median = sortedRtts.get(2); // 5个点的中位数是第3个
+
+            double range = max - min;
+            double meanLastThree = rtts.subList(2, 5).stream().mapToInt(Integer::intValue).average().orElse(0.0);
+            double diffLastTwo = rtts.get(4) - rtts.get(3);
+
+            // 计算斜率 (简单线性回归)
+            double slope = calculateSlope(rtts);
+
+            // 构建特征对象
+            CpeFeatures features = CpeFeatures.builder()
+                    .deviceId(deviceId)
+                    .aggregationTimestamp(System.currentTimeMillis())
+                    .delay_1(rtts.get(0)).delay_2(rtts.get(1)).delay_3(rtts.get(2)).delay_4(rtts.get(3)).delay_5(rtts.get(4))
+                    .mean_delay(mean)
+                    .min_delay(min)
+                    .mid_delay(median)
+                    .max_delay(max)
+                    .range(range)
+                    .mean_of_last_three(meanLastThree)
+                    .diff_between_last_two(diffLastTwo)
+                    .slope_delay(slope)
+                    .build();
+
+            out.collect(features);
+        }
+
+        /**
+         * 计算5个点的简单线性回归斜率
+         */
+        private double calculateSlope(List<Integer> y) {
+            int n = y.size();
+            double[] x = IntStream.range(1, n + 1).mapToDouble(i -> i).toArray();
+
+            double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+            for(int i = 0; i < n; i++) {
+                sumX += x[i];
+                sumY += y.get(i);
+                sumXY += x[i] * y.get(i);
+                sumX2 += x[i] * x[i];
+            }
+
+            if ((n * sumX2 - sumX * sumX) == 0) return 0; // 避免除以零
+
+            return (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
         }
     }
 
-    /**
-     * 创建一个通用的 Kafka Sink，用于将数据写入指定的 Topic。
-     * @param topic 目标 Kafka 主题
-     * @param <T>   要发送的数据类型
-     * @return 配置好的 KafkaSink 实例
-     */
     private static <T> KafkaSink<T> createKafkaSink(String topic) {
         KafkaRecordSerializationSchema<T> serializer = KafkaRecordSerializationSchema.<T>builder()
                 .setTopic(topic)

@@ -37,7 +37,7 @@ class PredictionServiceStub(object):
         """
         self.PredictPacketLoss = channel.unary_unary(
                 '/PredictionService/PredictPacketLoss',
-                request_serializer=prediction__pb2.PacketLossRequest.SerializeToString,
+                request_serializer=prediction__pb2.PacketLossFeaturesRequest.SerializeToString,
                 response_deserializer=prediction__pb2.PacketLossResponse.FromString,
                 _registered_method=True)
 
@@ -48,7 +48,7 @@ class PredictionServiceServicer(object):
 
     def PredictPacketLoss(self, request, context):
         """定义一个名为 PredictPacketLoss 的远程方法
-        它接收 PacketLossRequest 消息，并返回 PacketLossResponse 消息
+        它接收 PacketLossFeaturesRequest 消息，并返回 PacketLossResponse 消息
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -59,7 +59,7 @@ def add_PredictionServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'PredictPacketLoss': grpc.unary_unary_rpc_method_handler(
                     servicer.PredictPacketLoss,
-                    request_deserializer=prediction__pb2.PacketLossRequest.FromString,
+                    request_deserializer=prediction__pb2.PacketLossFeaturesRequest.FromString,
                     response_serializer=prediction__pb2.PacketLossResponse.SerializeToString,
             ),
     }
@@ -89,7 +89,7 @@ class PredictionService(object):
             request,
             target,
             '/PredictionService/PredictPacketLoss',
-            prediction__pb2.PacketLossRequest.SerializeToString,
+            prediction__pb2.PacketLossFeaturesRequest.SerializeToString,
             prediction__pb2.PacketLossResponse.FromString,
             options,
             channel_credentials,

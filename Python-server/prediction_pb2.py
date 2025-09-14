@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10prediction.proto\"!\n\x11PacketLossRequest\x12\x0c\n\x04rtts\x18\x01 \x03(\x05\"+\n\x12PacketLossResponse\x12\x15\n\rhasPacketLoss\x18\x01 \x01(\x08\x32Q\n\x11PredictionService\x12<\n\x11PredictPacketLoss\x12\x12.PacketLossRequest\x1a\x13.PacketLossResponseB\x18\n\x14\x63om.cpeplatform.grpcP\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10prediction.proto\"\x9c\x02\n\x19PacketLossFeaturesRequest\x12\x0f\n\x07\x64\x65lay_1\x18\x01 \x01(\x05\x12\x0f\n\x07\x64\x65lay_2\x18\x02 \x01(\x05\x12\x0f\n\x07\x64\x65lay_3\x18\x03 \x01(\x05\x12\x0f\n\x07\x64\x65lay_4\x18\x04 \x01(\x05\x12\x0f\n\x07\x64\x65lay_5\x18\x05 \x01(\x05\x12\x12\n\nmean_delay\x18\x06 \x01(\x01\x12\x11\n\tmin_delay\x18\x07 \x01(\x01\x12\x11\n\tmid_delay\x18\x08 \x01(\x01\x12\x11\n\tmax_delay\x18\t \x01(\x01\x12\r\n\x05range\x18\n \x01(\x01\x12\x1a\n\x12mean_of_last_three\x18\x0b \x01(\x01\x12\x1d\n\x15\x64iff_between_last_two\x18\x0c \x01(\x01\x12\x13\n\x0bslope_delay\x18\r \x01(\x01\"+\n\x12PacketLossResponse\x12\x15\n\rhasPacketLoss\x18\x01 \x01(\x08\x32Y\n\x11PredictionService\x12\x44\n\x11PredictPacketLoss\x12\x1a.PacketLossFeaturesRequest\x1a\x13.PacketLossResponseB\x18\n\x14\x63om.cpeplatform.grpcP\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,10 +32,10 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'prediction_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\024com.cpeplatform.grpcP\001'
-  _globals['_PACKETLOSSREQUEST']._serialized_start=20
-  _globals['_PACKETLOSSREQUEST']._serialized_end=53
-  _globals['_PACKETLOSSRESPONSE']._serialized_start=55
-  _globals['_PACKETLOSSRESPONSE']._serialized_end=98
-  _globals['_PREDICTIONSERVICE']._serialized_start=100
-  _globals['_PREDICTIONSERVICE']._serialized_end=181
+  _globals['_PACKETLOSSFEATURESREQUEST']._serialized_start=21
+  _globals['_PACKETLOSSFEATURESREQUEST']._serialized_end=305
+  _globals['_PACKETLOSSRESPONSE']._serialized_start=307
+  _globals['_PACKETLOSSRESPONSE']._serialized_end=350
+  _globals['_PREDICTIONSERVICE']._serialized_start=352
+  _globals['_PREDICTIONSERVICE']._serialized_end=441
 # @@protoc_insertion_point(module_scope)
