@@ -1,0 +1,24 @@
+// 指定使用 proto3 语法
+syntax = "proto3";
+
+// 生成的Java类的包名 (Python端会忽略此项)
+option java_package = "com.cpeplatform.grpc";
+option java_multiple_files = true;
+
+// 定义 gRPC 服务的名称
+service PredictionService {
+  // 定义一个名为 PredictPacketLoss 的远程方法
+  // 它接收 PacketLossRequest 消息，并返回 PacketLossResponse 消息
+  rpc PredictPacketLoss (PacketLossRequest) returns (PacketLossResponse);
+}
+
+// 定义请求消息的结构
+message PacketLossRequest {
+  // `repeated` 关键字表示这是一个列表/数组
+  repeated int32 rtts = 1;
+}
+
+// 定义响应消息的结构
+message PacketLossResponse {
+  bool hasPacketLoss = 1;
+}
