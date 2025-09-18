@@ -8,9 +8,9 @@ server:
 
 # 【【【新增】】】 gRPC 客户端配置
 grpc:
-  server:
-    address: "localhost" # 另一台 gRPC 服务器的地址
-    port: 9090           # gRPC 服务器的端口
+  client:
+    prediction-service:
+      targets: "localhost:9090,localhost:9091"
 
 # ===================================================================
 # Spring 框架核心配置
@@ -60,7 +60,7 @@ spring:
   # Kafka 配置
   # -------------------------------------------------------------------
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: localhost:9092,localhost:9093,localhost:9094
     consumer:
       group-id: cpe-platform-group
       auto-offset-reset: earliest
@@ -71,6 +71,8 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        linger.ms: 0
 
 # ===================================================================
 # 应用自定义配置
@@ -81,10 +83,7 @@ app:
     topic:
       # 模拟器发送的原始数据Topic
       raw-data: "cpe-raw-data"
-      processed-latency: "cpe-processed-latency"
-      processed-status: "cpe-processed-status"
       # 定义新的聚合数据Topic
-      packetloss-aggregation: "cpe-packetloss-aggregation"
       features-for-prediction: "cpe-features-for-prediction"
       # 定义新的预测结果Topic
       prediction-result: "cpe-prediction-result"

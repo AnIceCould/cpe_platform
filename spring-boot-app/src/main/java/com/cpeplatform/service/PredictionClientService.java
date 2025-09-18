@@ -1,7 +1,7 @@
 package com.cpeplatform.service;
 
 import com.cpeplatform.adapter.kafka.PredictionResultProducerService;
-import com.cpeplatform.config.ExecutorConfig; // 导入我们的配置类
+import com.cpeplatform.config.ExecutorConfig;
 import com.cpeplatform.dto.CpeFeatures;
 import com.cpeplatform.dto.PredictionResultDto;
 import com.cpeplatform.grpc.PacketLossFeaturesRequest;
@@ -15,36 +15,45 @@ import io.grpc.ManagedChannelBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier; // 【新增导入】
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import java.util.concurrent.Executor; // 【修改导入】
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * 负责与外部的 gRPC 预测服务进行通信。
+ * 【最终版】: 采用手动轮询方式，确保健壮性和简单性。
+ */
 @Service
 public class PredictionClientService {
 
     private static final Logger logger = LoggerFactory.getLogger(PredictionClientService.class);
 
-    @Value("${grpc.server.address}")
-    private String grpcServerAddress;
-    @Value("${grpc.server.port}")
-    private int grpcServerPort;
+    // 【核心修正】: 直接硬编码服务器地址，不再需要配置文件
+    private static final String GRPC_SERVER_1_ADDRESS = "localhost";
+    private static final int GRPC_SERVER_1_PORT = 9090;
+    private static final String GRPC_SERVER_2_ADDRESS = "localhost";
+    private static final int GRPC_SERVER_2_PORT = 9091;
 
-    private ManagedChannel channel;
-    private PredictionServiceGrpc.PredictionServiceFutureStub futureStub;
+    // 【核心修正】: 为每个服务器创建一个独立的 Channel 和 Stub
+    private ManagedChannel channel1;
+    private ManagedChannel channel2;
+    private PredictionServiceGrpc.PredictionServiceFutureStub futureStub1;
+    private PredictionServiceGrpc.PredictionServiceFutureStub futureStub2;
 
-    // 【核心修改】: 注入我们自定义的 Executor
+    // 【核心修正】: 一个用于轮询的线程安全的计数器
+    private final AtomicInteger requestCounter = new AtomicInteger(0);
+
     private final Executor grpcCallbackExecutor;
     private final PredictionResultProducerService producerService;
 
     @Autowired
     public PredictionClientService(
             PredictionResultProducerService producerService,
-            // 使用 @Qualifier 注解，确保 Spring 注入的是我们刚刚定义的那个 Bean
             @Qualifier(ExecutorConfig.GRPC_CALLBACK_EXECUTOR) Executor grpcCallbackExecutor) {
         this.producerService = producerService;
         this.grpcCallbackExecutor = grpcCallbackExecutor;
@@ -52,11 +61,23 @@ public class PredictionClientService {
 
     @PostConstruct
     private void init() {
-        logger.info("正在连接到 gRPC 服务器，地址: {}:{}", grpcServerAddress, grpcServerPort);
-        channel = ManagedChannelBuilder.forAddress(grpcServerAddress, grpcServerPort)
+        logger.info("正在初始化 gRPC 客户端 (手动轮询模式)...");
+
+        // 创建到服务器1的连接
+        logger.info(" -> 连接到服务器1: {}:{}", GRPC_SERVER_1_ADDRESS, GRPC_SERVER_1_PORT);
+        channel1 = ManagedChannelBuilder.forAddress(GRPC_SERVER_1_ADDRESS, GRPC_SERVER_1_PORT)
                 .usePlaintext()
                 .build();
-        futureStub = PredictionServiceGrpc.newFutureStub(channel);
+        futureStub1 = PredictionServiceGrpc.newFutureStub(channel1);
+
+        // 创建到服务器2的连接
+        logger.info(" -> 连接到服务器2: {}:{}", GRPC_SERVER_2_ADDRESS, GRPC_SERVER_2_PORT);
+        channel2 = ManagedChannelBuilder.forAddress(GRPC_SERVER_2_ADDRESS, GRPC_SERVER_2_PORT)
+                .usePlaintext()
+                .build();
+        futureStub2 = PredictionServiceGrpc.newFutureStub(channel2);
+
+        logger.info("gRPC 客户端已准备就绪。");
     }
 
     public void predict(CpeFeatures features) {
@@ -66,7 +87,21 @@ public class PredictionClientService {
         }
 
         try {
-            logger.info("准备【异步】调用 gRPC 预测服务...");
+            // 【核心修正】: 手动实现轮询负载均衡
+            int currentRequest = requestCounter.getAndIncrement();
+            PredictionServiceGrpc.PredictionServiceFutureStub selectedStub;
+            String selectedServer;
+
+            if (currentRequest % 2 == 0) {
+                selectedStub = futureStub1;
+                selectedServer = GRPC_SERVER_1_ADDRESS + ":" + GRPC_SERVER_1_PORT;
+            } else {
+                selectedStub = futureStub2;
+                selectedServer = GRPC_SERVER_2_ADDRESS + ":" + GRPC_SERVER_2_PORT;
+            }
+
+            logger.info("准备【异步】调用 gRPC 预测服务 (目标: {})", selectedServer);
+
             PacketLossFeaturesRequest request = PacketLossFeaturesRequest.newBuilder()
                     .setDelay1(features.getDelay_1()).setDelay2(features.getDelay_2()).setDelay3(features.getDelay_3())
                     .setDelay4(features.getDelay_4()).setDelay5(features.getDelay_5())
@@ -76,13 +111,13 @@ public class PredictionClientService {
                     .setDiffBetweenLastTwo(features.getDiff_between_last_two()).setSlopeDelay(features.getSlope_delay())
                     .build();
 
-            ListenableFuture<PacketLossResponse> futureResponse = futureStub.predictPacketLoss(request);
+            ListenableFuture<PacketLossResponse> futureResponse = selectedStub.predictPacketLoss(request);
 
             Futures.addCallback(futureResponse, new FutureCallback<>() {
                 @Override
                 public void onSuccess(PacketLossResponse response) {
                     boolean prediction = response.getHasPacketLoss();
-                    logger.info("✅ 异步 gRPC 调用成功！预测结果: {}", prediction ? "可能丢包" : "正常");
+                    logger.info("✅ 异步 gRPC 调用成功 (来自 {})！预测结果: {}", selectedServer, prediction ? "可能丢包" : "正常");
 
                     PredictionResultDto resultDto = PredictionResultDto.builder()
                             .deviceId(features.getDeviceId())
@@ -95,7 +130,7 @@ public class PredictionClientService {
 
                 @Override
                 public void onFailure(Throwable t) {
-                    logger.error("❌ 异步 gRPC 服务调用失败: {}", t.getMessage());
+                    logger.error("❌ 异步 gRPC 服务调用失败 (目标: {}): {}", selectedServer, t.getMessage());
                 }
             }, grpcCallbackExecutor);
 
@@ -106,10 +141,15 @@ public class PredictionClientService {
 
     @PreDestroy
     private void shutdown() throws InterruptedException {
-        // 在应用关闭时，Spring会自动关闭我们定义的Bean，无需手动关闭线程池
-        if (channel != null) {
-            channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+        // 【核心修正】: 关闭所有 channel
+        logger.info("正在关闭 gRPC 连接...");
+        if (channel1 != null) {
+            channel1.shutdown().awaitTermination(5, TimeUnit.SECONDS);
         }
+        if (channel2 != null) {
+            channel2.shutdown().awaitTermination(5, TimeUnit.SECONDS);
+        }
+        logger.info("gRPC 连接已关闭。");
     }
 }
 

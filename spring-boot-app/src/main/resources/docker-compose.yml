@@ -21,27 +21,72 @@ services:
     volumes:
       - redis_data:/data
 
+    # Zookeeper: 负责协调和管理 Kafka 集群元数据
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
+    hostname: zookeeper
     container_name: zookeeper
+    ports:
+      - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
 
-  kafka:
+  # Kafka Broker 1
+  kafka1:
     image: confluentinc/cp-kafka:7.5.0
-    container_name: kafka
-    depends_on:
-      - zookeeper
+    hostname: kafka1
+    container_name: kafka1
     ports:
       - "9092:9092"
+    depends_on:
+      - zookeeper
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      # 【核心配置】: 定义两个监听器，一个用于内部，一个用于外部
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      # 【核心配置】: Broker内部之间通过 kafka1:29092 通信
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      # 【核心配置】: 告诉外部客户端，应该通过 localhost:9092 来连接我
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka1:29092,EXTERNAL://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      # ... 其他 Confluent 特定配置 ...
+
+  # Kafka Broker 2
+  kafka2:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka2
+    container_name: kafka2
+    ports:
+      - "9093:9093"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:29093,EXTERNAL://localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+
+  # Kafka Broker 3
+  kafka3:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka3
+    container_name: kafka3
+    ports:
+      - "9094:9094"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka3:29094,EXTERNAL://localhost:9094
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
 
 volumes:
   mysql_data:

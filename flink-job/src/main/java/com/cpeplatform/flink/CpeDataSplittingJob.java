@@ -27,7 +27,7 @@ import java.util.stream.IntStream;
 public class CpeDataSplittingJob {
 
     // --- 配置常量 ---
-    private static final String KAFKA_BOOTSTRAP_SERVERS = "localhost:9092";
+    private static final String KAFKA_BOOTSTRAP_SERVERS = "localhost:9092,localhost:9093,localhost:9094";
     private static final String INPUT_TOPIC = "cpe-raw-data";
     // 【修改】新的输出 Topic 名称
     private static final String OUTPUT_FEATURES_TOPIC = "cpe-features-for-prediction";

@@ -6,6 +6,7 @@ import pickle
 import pandas as pd
 import numpy as np
 import os
+import sys
 import warnings
 from pathlib import Path
 
@@ -166,14 +167,24 @@ class PredictionServiceImpl(prediction_pb2_grpc.PredictionServiceServicer):
         return response
 
 def serve():
+    """
+    启动 gRPC 服务器。
+    """
+    # 【核心修改】: 从命令行参数获取端口号，如果没有提供则默认为 9090
+    port = '9090'
+    if len(sys.argv) > 1:
+        port = sys.argv[1]
+
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     prediction_pb2_grpc.add_PredictionServiceServicer_to_server(
         PredictionServiceImpl(), server
     )
-    # 【修正】修复之前版本中的一个小拼写错误
-    server.add_insecure_port('[::]:9090')
+    
+    # 使用变量来设置端口
+    server.add_insecure_port(f'[::]:{port}')
+    
     server.start()
-    print("✅ gRPC 预测服务器已启动，正在监听端口 9090...")
+    print(f"✅ gRPC 预测服务器已启动，正在监听端口 {port}...")
     
     try:
         while True:
