@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时丢包警报</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #121212; color: #e0e0e0; margin: 0; padding: 2rem; }
+        .container { max-width: 800px; margin: auto; }
+        h1 { color: #bb86fc; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        #status { background-color: #333; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; }
+        .status-connected { color: #03dac6; }
+        .status-disconnected { color: #cf6679; }
+        #alerts { display: flex; flex-direction: column-reverse; }
+        .alert {
+            background-color: #cf6679;
+            color: #121212;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .alert-header { font-weight: bold; font-size: 1.1em; margin-bottom: 8px; }
+        .alert-body { font-family: 'Courier New', Courier, monospace; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>实时丢包警报监控</h1>
+        <div id="status">连接状态: 正在连接...</div>
+        <div id="alerts">
+            <!-- 警报将在这里动态插入 -->
+        </div>
+    </div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const alertsContainer = document.getElementById('alerts');
+        const wsUrl = 'ws://localhost:8080/ws/alerts';
+
+        function connect() {
+            const socket = new WebSocket(wsUrl);
+
+            socket.onopen = function(event) {
+                console.log('WebSocket 连接已建立');
+                statusDiv.textContent = '连接状态: 已连接';
+                statusDiv.className = 'status-connected';
+            };
+
+            socket.onmessage = function(event) {
+                console.log('收到消息:', event.data);
+                const alertData = JSON.parse(event.data);
+                
+                const alertElement = document.createElement('div');
+                alertElement.className = 'alert';
+                
+                const header = document.createElement('div');
+                header.className = 'alert-header';
+                header.textContent = `🚨 检测到丢包事件！`;
+                
+                const body = document.createElement('div');
+                body.className = 'alert-body';
+                body.innerHTML = `
+                    设备ID: ${alertData.deviceId}<br>
+                    时间戳: ${new Date(alertData.predictionTimestamp).toLocaleString()}
+                `;
+                
+                alertElement.appendChild(header);
+                alertElement.appendChild(body);
+                
+                alertsContainer.prepend(alertElement); // 将新警报放在最上面
+            };
+
+            socket.onclose = function(event) {
+                console.log('WebSocket 连接已关闭. 正在尝试重新连接...');
+                statusDiv.textContent = '连接状态: 已断开，正在重连...';
+                statusDiv.className = 'status-disconnected';
+                // 3秒后尝试重连
+                setTimeout(connect, 3000);
+            };
+
+            socket.onerror = function(error) {
+                console.error('WebSocket 错误:', error);
+            };
+        }
+
+        // 首次连接
+        connect();
+    </script>
+</body>
+</html>

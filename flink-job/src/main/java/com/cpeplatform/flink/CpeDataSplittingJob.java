@@ -69,7 +69,7 @@ public class CpeDataSplittingJob {
         // ------------------------------------------------------------------
         DataStream<CpeFeatures> featuresStream = latencyStream
                 .keyBy(CpeLatencyData::getDeviceId)
-                .countWindow(5)
+                .countWindow(5,1)
                 .process(new FeatureEngineeringProcessor()); // 使用新的处理器
 
         // 将计算好的特征集写入新的 Kafka Topic
