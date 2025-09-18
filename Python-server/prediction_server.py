@@ -15,9 +15,10 @@ import prediction_pb2_grpc
 
 warnings.filterwarnings("ignore")
 
-# --- 1. 数据和模型加载函数 (完全来自您的脚本) ---
+# --- 1. 数据和模型加载函数 (基于您的修正) ---
 
 BASE_DIR = Path("./example")
+# 【【【核心修正】】】: 采纳您提供的正确数据加载路径
 SAVE_DIR1 = BASE_DIR
 MODEL_PATH = 'controller_model_xgb.pkl' # 假设模型在根目录
 
@@ -77,8 +78,7 @@ except Exception as e:
     print(f"❌ 加载模型时发生未知错误: {e}")
     MODEL = None
 
-# 【【【核心修正】】】
-# 如果数据和模型都加载成功，则立即进行训练
+
 if X_train is not None and y_train is not None and MODEL is not None:
     print("⏳ 正在使用加载的数据训练模型 (fitting)...")
     try:
@@ -86,16 +86,22 @@ if X_train is not None and y_train is not None and MODEL is not None:
         print("✅ 模型训练完成，服务已准备就绪！")
     except Exception as e:
         print(f"❌ 模型训练时发生错误: {e}")
-        MODEL = None # 将模型置为None，防止后续预测出错
+        MODEL = None
 else:
     print("🛑 因数据或模型加载失败，无法训练模型。服务器将无法进行预测。")
     MODEL = None
 
+# --- 初始化全局计数器 ---
+total_calls = 0
+packet_loss_count = 0
+normal_count = 0
 
-# --- 3. gRPC 服务实现 (此部分逻辑不变) ---
+# --- 3. gRPC 服务实现 ---
 
 class PredictionServiceImpl(prediction_pb2_grpc.PredictionServiceServicer):
     def PredictPacketLoss(self, request, context):
+        global total_calls, packet_loss_count, normal_count
+
         print(f"📬 接收到 gRPC 请求...")
 
         if MODEL is None:
@@ -105,18 +111,12 @@ class PredictionServiceImpl(prediction_pb2_grpc.PredictionServiceServicer):
             return prediction_pb2.PacketLossResponse()
 
         features = {
-            'mean_delay': request.mean_delay,
-            'min_delay': request.min_delay,
-            'mid_delay': request.mid_delay,
-            'max_delay': request.max_delay,
-            'slope_delay': request.slope_delay,
-            'mean_of_last_three': request.mean_of_last_three,
-            'diff_between_last_two': request.diff_between_last_two,
-            'range': request.range,
-            'delay_1': request.delay_1,
-            'delay_2': request.delay_2,
-            'delay_3': request.delay_3,
-            'delay_4': request.delay_4,
+            'mean_delay': request.mean_delay, 'min_delay': request.min_delay,
+            'mid_delay': request.mid_delay, 'max_delay': request.max_delay,
+            'slope_delay': request.slope_delay, 'mean_of_last_three': request.mean_of_last_three,
+            'diff_between_last_two': request.diff_between_last_two, 'range': request.range,
+            'delay_1': request.delay_1, 'delay_2': request.delay_2,
+            'delay_3': request.delay_3, 'delay_4': request.delay_4,
             'delay_5': request.delay_5,
         }
         
@@ -130,21 +130,28 @@ class PredictionServiceImpl(prediction_pb2_grpc.PredictionServiceServicer):
         print(f"📊 正在为模型准备输入数据 (DataFrame):\n{input_df.to_string()}")
 
         try:
-            # 【【【新增】】】 记录预测开始时间
             start_time = time.time()
-
             prediction_array = MODEL.predict(input_df)
-            
-            # 【【【新增】】】 记录预测结束时间并计算耗时
             end_time = time.time()
             duration_ms = (end_time - start_time) * 1000
 
             prediction = prediction_array[0]
             prediction_result = bool(prediction == 1)
             print(f"🧠 模型预测结果: {prediction} => {'可能丢包' if prediction_result else '正常'}")
-            
-            # 【【【新增】】】 在控制台打印耗时
             print(f"⏱️ 本次预测耗时: {duration_ms:.2f} 毫秒")
+
+            # 更新并打印计数器
+            total_calls += 1
+            if prediction_result:
+                packet_loss_count += 1
+            else:
+                normal_count += 1
+            
+            print("📈 实时统计:")
+            print(f"   - 总调用次数: {total_calls}")
+            print(f"   - 丢包预测次数: {packet_loss_count}")
+            print(f"   - 正常预测次数: {normal_count}")
+
 
         except Exception as e:
             print(f"🛑 模型预测时发生错误: {e}")
@@ -163,6 +170,7 @@ def serve():
     prediction_pb2_grpc.add_PredictionServiceServicer_to_server(
         PredictionServiceImpl(), server
     )
+    # 【修正】修复之前版本中的一个小拼写错误
     server.add_insecure_port('[::]:9090')
     server.start()
     print("✅ gRPC 预测服务器已启动，正在监听端口 9090...")

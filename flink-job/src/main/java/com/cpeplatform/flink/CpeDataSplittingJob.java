@@ -36,6 +36,10 @@ public class CpeDataSplittingJob {
     public static void main(String[] args) throws Exception {
 
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setParallelism(8);
+        // Flink 会每隔 2000 毫秒（2秒）在 Source 算子处注入一个特殊的“延迟标记”，
+        // 并跟踪这个标记在数据管道中流动的耗时。正是这个机制，让 Web UI 能够显示"Latency"图表。
+        env.getConfig().setLatencyTrackingInterval(2000);
         KafkaSource<CpeRawData> source = KafkaSource.<CpeRawData>builder()
                 .setBootstrapServers(KAFKA_BOOTSTRAP_SERVERS)
                 .setTopics(INPUT_TOPIC)
