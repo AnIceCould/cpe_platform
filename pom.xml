@@ -23,6 +23,7 @@
         <flink.version>1.18.1</flink.version>
         <lombok.version>1.18.30</lombok.version>
         <logstash-logback.version>7.4</logstash-logback.version>
+        <guava.version>32.1.2-jre</guava.version>
     </properties>
 
     <!-- 统一管理所有子模块的依赖版本 -->
@@ -43,6 +44,11 @@
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
