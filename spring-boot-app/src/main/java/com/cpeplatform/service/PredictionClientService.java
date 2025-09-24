@@ -26,26 +26,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 负责与外部的 gRPC 预测服务进行通信。
- * 【最终版】: 采用手动轮询方式，确保健壮性和简单性。
+ * 采用手动轮询方式。
  */
 @Service
 public class PredictionClientService {
 
     private static final Logger logger = LoggerFactory.getLogger(PredictionClientService.class);
 
-    // 【核心修正】: 直接硬编码服务器地址，不再需要配置文件
     private static final String GRPC_SERVER_1_ADDRESS = "localhost";
     private static final int GRPC_SERVER_1_PORT = 9090;
     private static final String GRPC_SERVER_2_ADDRESS = "localhost";
     private static final int GRPC_SERVER_2_PORT = 9091;
 
-    // 【核心修正】: 为每个服务器创建一个独立的 Channel 和 Stub
+    // 为每个服务器创建一个独立的 Channel 和 Stub
     private ManagedChannel channel1;
     private ManagedChannel channel2;
     private PredictionServiceGrpc.PredictionServiceFutureStub futureStub1;
     private PredictionServiceGrpc.PredictionServiceFutureStub futureStub2;
 
-    // 【核心修正】: 一个用于轮询的线程安全的计数器
+    // 一个用于轮询的线程安全的计数器
     private final AtomicInteger requestCounter = new AtomicInteger(0);
 
     private final Executor grpcCallbackExecutor;
@@ -87,7 +86,7 @@ public class PredictionClientService {
         }
 
         try {
-            // 【核心修正】: 手动实现轮询负载均衡
+            // 手动实现轮询负载均衡
             int currentRequest = requestCounter.getAndIncrement();
             PredictionServiceGrpc.PredictionServiceFutureStub selectedStub;
             String selectedServer;

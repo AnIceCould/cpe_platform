@@ -21,7 +21,6 @@ import org.apache.flink.util.OutputTag;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class CpeDataSplittingJob {
@@ -29,17 +28,16 @@ public class CpeDataSplittingJob {
     // --- 配置常量 ---
     private static final String KAFKA_BOOTSTRAP_SERVERS = "localhost:9092,localhost:9093,localhost:9094";
     private static final String INPUT_TOPIC = "cpe-raw-data";
-    // 【修改】新的输出 Topic 名称
+    // 新的输出 Topic 名称
     private static final String OUTPUT_FEATURES_TOPIC = "cpe-features-for-prediction";
     private static final String CONSUMER_GROUP_ID = "cpe-flink-processor-group";
 
     public static void main(String[] args) throws Exception {
 
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        // 线程数量
         env.setParallelism(8);
-        // Flink 会每隔 2000 毫秒（2秒）在 Source 算子处注入一个特殊的“延迟标记”，
-        // 并跟踪这个标记在数据管道中流动的耗时。正是这个机制，让 Web UI 能够显示"Latency"图表。
-        env.getConfig().setLatencyTrackingInterval(2000);
+
         KafkaSource<CpeRawData> source = KafkaSource.<CpeRawData>builder()
                 .setBootstrapServers(KAFKA_BOOTSTRAP_SERVERS)
                 .setTopics(INPUT_TOPIC)
@@ -51,16 +49,13 @@ public class CpeDataSplittingJob {
         DataStream<CpeRawData> rawStream = env.fromSource(source, WatermarkStrategy.noWatermarks(), "Kafka Raw Data Source")
                 .filter(java.util.Objects::nonNull);
 
-        final OutputTag<CpeLatencyData> latencyTag = new OutputTag<CpeLatencyData>("latency-output"){};
+        final OutputTag<CpeLatencyData> latencyTag = new OutputTag<>("latency-output") {
+        };
 
         SingleOutputStreamOperator<CpeStatusData> mainStream = rawStream
-                .process(new ProcessFunction<CpeRawData, CpeStatusData>() {
+                .process(new ProcessFunction<>() {
                     @Override
                     public void processElement(CpeRawData rawData, Context ctx, Collector<CpeStatusData> out) {
-                        // 状态数据流保持不变 (如果需要)
-                        // CpeStatusData statusData = new CpeStatusData(...);
-                        // out.collect(statusData);
-
                         CpeLatencyData latencyData = new CpeLatencyData(rawData.getDeviceId(), rawData.getRtt(), rawData.getTimestamp());
                         ctx.output(latencyTag, latencyData);
                     }
@@ -68,16 +63,14 @@ public class CpeDataSplittingJob {
 
         DataStream<CpeLatencyData> latencyStream = mainStream.getSideOutput(latencyTag);
 
-        // ------------------------------------------------------------------
-        // 【【【 全新的特征工程逻辑 】】】
-        // ------------------------------------------------------------------
+        // 特征工程逻辑
         DataStream<CpeFeatures> featuresStream = latencyStream
                 .keyBy(CpeLatencyData::getDeviceId)
                 .countWindow(5,1)
-                .process(new FeatureEngineeringProcessor()); // 使用新的处理器
+                .process(new FeatureEngineeringProcessor());
 
         // 将计算好的特征集写入新的 Kafka Topic
-        featuresStream.sinkTo(createKafkaSink(OUTPUT_FEATURES_TOPIC))
+        featuresStream.sinkTo(createKafkaSink())
                 .name("Features Kafka Sink");
 
         env.execute("CPE 实时特征工程作业");
@@ -152,9 +145,9 @@ public class CpeDataSplittingJob {
         }
     }
 
-    private static <T> KafkaSink<T> createKafkaSink(String topic) {
+    private static <T> KafkaSink<T> createKafkaSink() {
         KafkaRecordSerializationSchema<T> serializer = KafkaRecordSerializationSchema.<T>builder()
-                .setTopic(topic)
+                .setTopic(CpeDataSplittingJob.OUTPUT_FEATURES_TOPIC)
                 .setValueSerializationSchema(new JsonSerializationSchema<>())
                 .build();
 

@@ -3,7 +3,7 @@ package com.cpeplatform.adapter.kafka;
 import com.cpeplatform.api.dto.CpeRawDataDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-// 导入 SLF4J 的核心 API
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 @Component // 将该类注册为Spring容器中的一个组件(Bean)
 public class KafkaDataSimulator implements CommandLineRunner {
 
-    // 【关键】: 使用SLF4J的LoggerFactory获取Logger实例，这是日志记录的标准用法
+    // 使用SLF4J的LoggerFactory获取Logger实例
     private static final Logger logger = LoggerFactory.getLogger(KafkaDataSimulator.class);
 
     // KafkaTemplate是Spring封装的Kafka生产者客户端，用于方便地发送消息

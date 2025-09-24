@@ -9,20 +9,9 @@
         .container { max-width: 800px; margin: auto; }
         h1 { color: #bb86fc; border-bottom: 2px solid #333; padding-bottom: 10px; }
         #status { background-color: #333; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; }
-        .status-connected { color: #03dac6; }
-        .status-disconnected { color: #cf6679; }
+
         #alerts { display: flex; flex-direction: column-reverse; }
-        .alert {
-            background-color: #cf6679;
-            color: #121212;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        .alert-header { font-weight: bold; font-size: 1.1em; margin-bottom: 8px; }
-        .alert-body { font-family: 'Courier New', Courier, monospace; }
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
@@ -43,7 +32,7 @@
         function connect() {
             const socket = new WebSocket(wsUrl);
 
-            socket.onopen = function(event) {
+            socket.onopen = function() {
                 console.log('WebSocket 连接已建立');
                 statusDiv.textContent = '连接状态: 已连接';
                 statusDiv.className = 'status-connected';
@@ -62,9 +51,28 @@
                 
                 const body = document.createElement('div');
                 body.className = 'alert-body';
+
+                // 【【【核心修改】】】
+                // 我们不再使用 toLocaleString()，而是自定义格式化函数以确保毫秒的显示。
+                const eventDate = new Date(alertData.predictionTimestamp);
+
+                // 一个辅助函数，用于给数字补零 (例如 5 -> "05")
+                const pad = (num, size = 2) => String(num).padStart(size, '0');
+
+                // 手动拼接日期和时间字符串
+                const year = eventDate.getFullYear();
+                const month = pad(eventDate.getMonth() + 1); // 月份是从0开始的
+                const day = pad(eventDate.getDate());
+                const hours = pad(eventDate.getHours());
+                const minutes = pad(eventDate.getMinutes());
+                const seconds = pad(eventDate.getSeconds());
+                const milliseconds = pad(eventDate.getMilliseconds(), 3); // 毫秒需要补到3位
+
+                const formattedTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+                
                 body.innerHTML = `
                     设备ID: ${alertData.deviceId}<br>
-                    时间戳: ${new Date(alertData.predictionTimestamp).toLocaleString()}
+                    事件时间: ${formattedTime}
                 `;
                 
                 alertElement.appendChild(header);
@@ -73,7 +81,7 @@
                 alertsContainer.prepend(alertElement); // 将新警报放在最上面
             };
 
-            socket.onclose = function(event) {
+            socket.onclose = function() {
                 console.log('WebSocket 连接已关闭. 正在尝试重新连接...');
                 statusDiv.textContent = '连接状态: 已断开，正在重连...';
                 statusDiv.className = 'status-disconnected';
@@ -91,3 +99,4 @@
     </script>
 </body>
 </html>
+

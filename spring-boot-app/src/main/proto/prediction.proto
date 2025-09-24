@@ -12,7 +12,7 @@ service PredictionService {
   rpc PredictPacketLoss (PacketLossFeaturesRequest) returns (PacketLossResponse);
 }
 
-// 【重大更新】 定义新的请求消息结构
+// 定义新的请求消息结构
 message PacketLossFeaturesRequest {
   // 原始 RTT 值
   int32 delay_1 = 1;

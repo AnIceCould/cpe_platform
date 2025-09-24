@@ -34,7 +34,7 @@ public class CpeDataController {
      */
     @PostMapping("/data") // 端点URL: POST http://localhost:8080/api/cpe/data
     public ResponseEntity<String> submitCpeData(@RequestBody CpeRawDataDto rawDataDto) {
-        // 校验输入数据 (在实际应用中，这里应该有更完善的校验逻辑)
+        // 校验输入数据
         if (rawDataDto.getDeviceId() == null || rawDataDto.getDeviceId().isEmpty()) {
             return ResponseEntity.badRequest().body("设备ID (deviceId) 不能为空。");
         }
@@ -46,21 +46,4 @@ public class CpeDataController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body("数据已接收并正在处理中。");
     }
 }
-//```
-//
-//        ### 如何使用这个新接口
-//
-//1.  **启动您的Spring Boot应用**。
-//        2.  使用任何API测试工具（如 Postman、curl 或 Insomnia）向以下地址发送一个 `POST` 请求：
-//
-//        **URL**: `http://localhost:8080/api/cpe/data`
-//
-//        **请求体 (Body)** (选择 `raw` 和 `JSON` 类型):
-//        ```json
-//{
-//    "deviceId": "cpe-from-api-007",
-//        "status": "ONLINE",
-//        "rtt": 42,
-//        "timestamp": 1757788800000
-//}
 

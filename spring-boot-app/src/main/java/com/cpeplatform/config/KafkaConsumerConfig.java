@@ -2,7 +2,6 @@ package com.cpeplatform.config;
 
 import com.cpeplatform.dto.CpeFeatures;
 import com.cpeplatform.dto.PredictionResultDto;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -31,7 +30,6 @@ public class KafkaConsumerConfig {
 
         // 2. 创建一个专门用于 CpeFeatures 的反序列化器
         JsonDeserializer<CpeFeatures> deserializer = new JsonDeserializer<>(CpeFeatures.class);
-        // 【核心修正】: 不再需要手动设置 trusted.packages，因为构造函数已经指定了目标类型
 
         // 3. 创建消费者工厂，并传入我们手动创建的反序列化器实例
         // 这样可以完全避免 Spring 尝试从 props 中读取冲突的配置

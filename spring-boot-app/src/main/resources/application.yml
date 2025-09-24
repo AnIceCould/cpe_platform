@@ -6,12 +6,6 @@
 server:
   port: 8080 # 定义应用的监听端口
 
-# 【【【新增】】】 gRPC 客户端配置
-grpc:
-  client:
-    prediction-service:
-      targets: "localhost:9090,localhost:9091"
-
 # ===================================================================
 # Spring 框架核心配置
 # ===================================================================
@@ -21,11 +15,10 @@ spring:
   # -------------------------------------------------------------------
   datasource:
     # 数据库连接URL
-    # 请将 'cpe_platform_db' 替换为您的数据库名，并确保它已存在
     url: jdbc:mysql://192.168.56.1:3306/cpeDB?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    # 您的MySQL用户名 (例如: root)
+    # MySQL用户名
     username: cpeUsr
-    # 您的MySQL密码
+    # MySQL密码
     password: 123456
     # 明确指定使用哪个JDBC驱动
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -42,19 +35,9 @@ spring:
     # Hibernate specific settings
     hibernate:
       # ddl-auto: 自动数据定义语言。
-      # 'update' 会在应用启动时，根据实体类的变化自动更新数据库表结构。
-      # 在开发阶段非常方便。生产环境建议使用 'validate' 或数据库迁移工具 (Flyway/Liquibase)。
       ddl-auto: update
     # 是否在控制台显示Hibernate执行的SQL语句，便于调试
     show-sql: true
-
-  # -------------------------------------------------------------------
-  # Redis 配置
-  # -------------------------------------------------------------------
-  #redis:
-    #host: localhost # Redis服务器地址
-    #port: 6379      # Redis服务器端口
-    # password: your_redis_password # 如果您的Redis有密码，请取消此行注释并填入密码
 
   # -------------------------------------------------------------------
   # Kafka 配置

@@ -5,8 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 /**
  * 代表从5个RTT值中提取出的完整特征集。
  * 这是 Flink 作业的最终产出，也是 gRPC 服务的输入。

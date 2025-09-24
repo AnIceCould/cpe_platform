@@ -33,8 +33,7 @@ public class ExecutorConfig {
                 new LinkedBlockingQueue<>()) { // 工作队列
 
             /**
-             * 【【【核心修正】】】
-             * 我们重写 afterExecute 方法。这个方法在每个任务执行完毕后都会被调用。
+             * 重写 afterExecute 方法。这个方法在每个任务执行完毕后都会被调用。
              * @param r 刚刚执行完的任务
              * @param t 任务执行期间抛出的异常 (如果任务正常完成，则为 null)
              */
@@ -42,9 +41,8 @@ public class ExecutorConfig {
             protected void afterExecute(Runnable r, Throwable t) {
                 super.afterExecute(r, t);
                 // 检查任务是否是因为一个未捕获的异常而结束的
-                if (t == null && r instanceof Future<?>) {
+                if (t == null && r instanceof Future<?> future) {
                     try {
-                        Future<?> future = (Future<?>) r;
                         if (future.isDone()) {
                             // 调用 .get() 可以将任务内部的异常重新抛出
                             future.get();
@@ -60,9 +58,8 @@ public class ExecutorConfig {
                         Thread.currentThread().interrupt();
                     }
                 }
-                // 如果 t 不为 null，说明我们捕获到了一个被“吞噬”的异常！
+                // 如果捕获到了异常，打印日志
                 if (t != null) {
-                    // 我们将它大声地打印到错误日志中
                     logger.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
                     logger.error("  捕获到 gRPC 回调线程池中的未处理异常！");
                     logger.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", t);

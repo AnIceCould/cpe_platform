@@ -79,7 +79,7 @@
     </dependencies>
 
     <build>
-        <!-- 【【【新增插件】】】 用于从 .proto 文件生成 Java 代码 -->
+        <!-- 用于从 .proto 文件生成 Java 代码 -->
         <extensions>
             <extension>
                 <groupId>kr.motd.maven</groupId>

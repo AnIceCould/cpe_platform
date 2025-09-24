@@ -1,6 +1,6 @@
 package com.cpeplatform.adapter.kafka;
 
-import com.cpeplatform.dto.CpeFeatures; // 【重要】导入新的共享 DTO
+import com.cpeplatform.dto.CpeFeatures;
 import com.cpeplatform.service.PredictionClientService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +25,6 @@ public class AggregationDataConsumer {
     }
 
     /**
-     * 【核心修正】
      * 1. 监听的 Topic 更新为 Flink 输出特征数据的新 Topic。
      * 2. 接收的参数类型直接就是 Flink 计算好的 CpeFeatures 对象。
      */
@@ -38,8 +37,7 @@ public class AggregationDataConsumer {
         logger.info("-------------------------------------------------");
         logger.info("  ▶ 设备ID: {}", features.getDeviceId());
 
-        // 【核心修正】
-        // 不再需要提取RTT列表，直接将整个特征对象传递给预测服务。
+        // 直接将整个特征对象传递给预测服务。
         predictionClientService.predict(features);
 
         logger.info("=================================================");

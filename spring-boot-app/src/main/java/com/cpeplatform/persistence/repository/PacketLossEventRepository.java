@@ -11,6 +11,4 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PacketLossEventRepository extends JpaRepository<PacketLossEvent, Long> {
     // Spring Data JPA 会自动提供 save(), findById(), findAll() 等方法。
-    // 如果需要自定义查询，可以在这里定义方法，例如：
-    // List<PacketLossEvent> findByDeviceId(String deviceId);
 }
