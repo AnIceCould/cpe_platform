@@ -14,8 +14,8 @@ import java.util.concurrent.*;
 public class ExecutorConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(ExecutorConfig.class);
-
     public static final String GRPC_CALLBACK_EXECUTOR = "grpcCallbackExecutor";
+    public static final String DB_WRITER_EXECUTOR = "dbWriterExecutor"; // 定义新线程池的名称
 
     /**
      * 创建一个专门用于处理 gRPC 回调的线程池。
@@ -60,11 +60,19 @@ public class ExecutorConfig {
                 }
                 // 如果捕获到了异常，打印日志
                 if (t != null) {
-                    logger.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
                     logger.error("  捕获到 gRPC 回调线程池中的未处理异常！");
-                    logger.error("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", t);
                 }
             }
         };
+    }
+    /**
+     * 创建一个专门用于异步执行数据库写入任务的线程池。
+     * @return ExecutorService 实例
+     */
+    @Bean(name = DB_WRITER_EXECUTOR)
+    public ExecutorService dbWriterExecutor() {
+        logger.info("正在创建数据库写入专用线程池...");
+        // 这里的配置可以根据数据库写入的负载进行调整
+        return Executors.newFixedThreadPool(5);
     }
 }

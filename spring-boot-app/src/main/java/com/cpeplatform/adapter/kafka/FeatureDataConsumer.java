@@ -12,15 +12,15 @@ import org.springframework.stereotype.Service;
  * 负责消费 Flink 计算好的特征数据，并触发 gRPC 预测服务。
  */
 @Service
-public class AggregationDataConsumer {
+public class FeatureDataConsumer {
 
-    private static final Logger logger = LoggerFactory.getLogger(AggregationDataConsumer.class);
+    private static final Logger logger = LoggerFactory.getLogger(FeatureDataConsumer.class);
 
     // 注入我们新建的 gRPC 客户端服务
     private final PredictionClientService predictionClientService;
 
     @Autowired
-    public AggregationDataConsumer(PredictionClientService predictionClientService) {
+    public FeatureDataConsumer(PredictionClientService predictionClientService) {
         this.predictionClientService = predictionClientService;
     }
 

@@ -60,7 +60,7 @@ public class KafkaDataSimulator implements CommandLineRunner {
     public void run(String... args) {
         // 检查模拟器是否已在配置文件中禁用
         if (!simulatorEnabled) {
-            // 【关键】: 使用 SLF4J Logger 实例来记录中文日志
+            // 使用 SLF4J Logger 实例来记录中文日志
             logger.info("Kafka数据模拟器已禁用。");
             return;
         }
@@ -107,7 +107,7 @@ public class KafkaDataSimulator implements CommandLineRunner {
                 //    第三个参数是消息体（Payload）
                 kafkaTemplate.send(rawDataTopic, rawData.getDeviceId(), messagePayload);
 
-                // 【关键】: 使用 SLF4J Logger 实例来记录中文日志 (带参数)
+                // 使用 SLF4J Logger 实例来记录中文日志 (带参数)
                 logger.info("已发送消息: {}", messagePayload);
 
                 // 5. 暂停1秒，控制发送频率

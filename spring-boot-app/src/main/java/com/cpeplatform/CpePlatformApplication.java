@@ -2,6 +2,7 @@ package com.cpeplatform;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 /**
  * CPE平台服务主启动类
@@ -12,6 +13,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * - @ComponentScan: 自动扫描该类所在的包以及下级包中的组件。
  */
 @SpringBootApplication
+@EnableAsync
 public class CpePlatformApplication {
 
     /**
