@@ -64,12 +64,14 @@ app:
   # Kafka Topic 名称配置
   kafka:
     topic:
-      # 模拟器发送的原始数据Topic
+      # 模拟器发送的原始数据 Topic
       raw-data: "cpe-raw-data"
-      # 定义新的聚合数据Topic
+      # 定义新的聚合数据 Topic
       features-for-prediction: "cpe-features-for-prediction"
-      # 定义新的预测结果Topic
+      # 定义新地预测结果 Topic
       prediction-result: "cpe-prediction-result"
+      # 设备状态数据的 Topic
+      processed-status: "cpe-processed-status"
   # 数据模拟器配置
   simulator:
     # 是否启用数据模拟器。设置为 'false' 可以关闭它，无需修改代码。

@@ -1,9 +1,9 @@
 package com.cpeplatform.config;
 
 import com.cpeplatform.dto.CpeFeatures;
+import com.cpeplatform.dto.CpeStatusDataDto;
 import com.cpeplatform.dto.PredictionResultDto;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,31 +14,27 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 import java.util.Map;
 
+/**
+ * 负责定义所有 Kafka 消费者的专属配置工厂 (ContainerFactory)。
+ * Spring Boot 会自动扫描并加载这个带有 @Configuration 注解的类。
+ */
 @Configuration
 public class KafkaConsumerConfig {
 
-    @Autowired
-    private KafkaProperties properties; // 从Spring Boot自动配置中获取基础属性
+    private final KafkaProperties properties;
 
-    /**
-     * 为 CpeFeatures 创建一个专属的、完全在代码中配置的消费者工厂。
-     */
+    public KafkaConsumerConfig(KafkaProperties properties) {
+        this.properties = properties;
+    }
+
+    // --- CpeFeatures 消费者的配置 ---
     @Bean
     public ConsumerFactory<String, CpeFeatures> featuresConsumerFactory() {
-        // 1. 获取 application.yml 中的基础配置 (如 bootstrap-servers, group-id)
         Map<String, Object> props = properties.buildConsumerProperties();
-
-        // 2. 创建一个专门用于 CpeFeatures 的反序列化器
         JsonDeserializer<CpeFeatures> deserializer = new JsonDeserializer<>(CpeFeatures.class);
-
-        // 3. 创建消费者工厂，并传入我们手动创建的反序列化器实例
-        // 这样可以完全避免 Spring 尝试从 props 中读取冲突的配置
         return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), deserializer);
     }
 
-    /**
-     * 为 CpeFeatures 消费者创建专属的 ListenerContainerFactory。
-     */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, CpeFeatures> featuresKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, CpeFeatures> factory = new ConcurrentKafkaListenerContainerFactory<>();
@@ -46,25 +42,34 @@ public class KafkaConsumerConfig {
         return factory;
     }
 
-    /**
-     * 为 PredictionResultDto 创建一个专属的、完全在代码中配置的消费者工厂。
-     */
+    // --- PredictionResultDto 消费者的配置 ---
     @Bean
     public ConsumerFactory<String, PredictionResultDto> predictionResultConsumerFactory() {
         Map<String, Object> props = properties.buildConsumerProperties();
-
         JsonDeserializer<PredictionResultDto> deserializer = new JsonDeserializer<>(PredictionResultDto.class);
-
         return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), deserializer);
     }
 
-    /**
-     * 为 PredictionResultDto 消费者创建专属的 ListenerContainerFactory。
-     */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, PredictionResultDto> predictionResultKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, PredictionResultDto> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(predictionResultConsumerFactory());
+        return factory;
+    }
+
+    // 为 CpeStatusDataDto 创建专属的消费者工厂和 ListenerContainerFactory
+    @Bean
+    public ConsumerFactory<String, CpeStatusDataDto> statusConsumerFactory() {
+        Map<String, Object> props = properties.buildConsumerProperties();
+        // 配置JsonDeserializer以处理本模块的 CpeStatusDataDto 类
+        JsonDeserializer<CpeStatusDataDto> deserializer = new JsonDeserializer<>(CpeStatusDataDto.class);
+        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), deserializer);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, CpeStatusDataDto> statusKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, CpeStatusDataDto> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(statusConsumerFactory());
         return factory;
     }
 }

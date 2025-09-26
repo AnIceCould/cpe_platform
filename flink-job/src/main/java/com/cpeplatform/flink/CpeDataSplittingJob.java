@@ -28,7 +28,8 @@ public class CpeDataSplittingJob {
     // --- 配置常量 ---
     private static final String KAFKA_BOOTSTRAP_SERVERS = "localhost:9092,localhost:9093,localhost:9094";
     private static final String INPUT_TOPIC = "cpe-raw-data";
-    // 新的输出 Topic 名称
+    // 输出 Topic 名称
+    private static final String OUTPUT_STATUS_TOPIC = "cpe-processed-status";
     private static final String OUTPUT_FEATURES_TOPIC = "cpe-features-for-prediction";
     private static final String CONSUMER_GROUP_ID = "cpe-flink-processor-group";
 
@@ -56,12 +57,20 @@ public class CpeDataSplittingJob {
                 .process(new ProcessFunction<>() {
                     @Override
                     public void processElement(CpeRawData rawData, Context ctx, Collector<CpeStatusData> out) {
+                        // 发送状态数据
+                        CpeStatusData statusData = new CpeStatusData(rawData.getDeviceId(), rawData.getStatus(), rawData.getTimestamp());
+                        out.collect(statusData);
+                        // 发送延迟数据
                         CpeLatencyData latencyData = new CpeLatencyData(rawData.getDeviceId(), rawData.getRtt(), rawData.getTimestamp());
                         ctx.output(latencyTag, latencyData);
                     }
                 });
 
+        // 主流现在包含了状态数据
         DataStream<CpeLatencyData> latencyStream = mainStream.getSideOutput(latencyTag);
+
+        mainStream.sinkTo(createKafkaSink(OUTPUT_STATUS_TOPIC))
+                .name("Status Data Kafka Sink");
 
         // 特征工程逻辑
         DataStream<CpeFeatures> featuresStream = latencyStream
@@ -70,7 +79,7 @@ public class CpeDataSplittingJob {
                 .process(new FeatureEngineeringProcessor());
 
         // 将计算好的特征集写入新的 Kafka Topic
-        featuresStream.sinkTo(createKafkaSink())
+        featuresStream.sinkTo(createKafkaSink(OUTPUT_FEATURES_TOPIC))
                 .name("Features Kafka Sink");
 
         env.execute("CPE 实时特征工程作业");
@@ -145,9 +154,9 @@ public class CpeDataSplittingJob {
         }
     }
 
-    private static <T> KafkaSink<T> createKafkaSink() {
+    private static <T> KafkaSink<T> createKafkaSink(String topic) {
         KafkaRecordSerializationSchema<T> serializer = KafkaRecordSerializationSchema.<T>builder()
-                .setTopic(CpeDataSplittingJob.OUTPUT_FEATURES_TOPIC)
+                .setTopic(topic)
                 .setValueSerializationSchema(new JsonSerializationSchema<>())
                 .build();
 
