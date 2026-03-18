@@ -1,4 +1,6 @@
 ## 一个CPE丢包检测与配置平台
+- 丢包预测模型相关工作: [Proj-of-Polimi/NMDA-Lab](https://github.com/AnIceCould/Proj-of-Polimi/tree/main/Network_Measurement_Lab)
+
 ![描述](structure.png)
 
 1. 多个 CPE 设备产生流量数据和自身状态数据。发送 MQTT 到 Mosquitto 网关。
