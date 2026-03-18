@@ -1,5 +1,5 @@
 ## 一个CPE丢包检测与配置平台
-- 丢包预测模型相关工作: [Proj-of-Polimi/NMDA-Lab](https://github.com/AnIceCould/Proj-of-Polimi/tree/main/Network_Measurement_Lab)
+- 丢包预测模型相关工作: [Packet Loss Event Classification](https://github.com/AnIceCould/Proj-of-Polimi/tree/main/Network%20Measurement%20and%20Data%20Analysis%20Lab/H_Packet%20Loss%20Event%20Classification)
 
 ![描述](structure.png)
 
