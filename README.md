@@ -9,7 +9,7 @@
 - **AI/计算**: XGBoost, gRPC
 - **存储/缓存**: MySQL, Redis
 - **实时通信**: WebSocket, gRPC
-- **预测模型**: [Packet Loss Event Classification Models](https://github.com/AnIceCould/Proj-of-Polimi/tree/main/Network%20Measurement%20and%20Data%20Analysis%20Lab/H_Packet%20Loss%20Event%20Classification)
+- **预测模型**: [Packet Loss Event Classification Models](https://github.com/AnIceCould/Proj-of-Polimi/tree/main/Network%20Measurement%20and%20Data%20Analysis%20Lab/H_Packet%20Loss%20Event%20Classification)（课程项目）
 
 ---
 
